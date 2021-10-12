@@ -123,147 +123,99 @@ class Counting(Cog_Extension):
 
     @commands.Cog.listener()
     async def on_message(self, msg):
+        try:
+            int(msg.content)
+        except:
+            return
         with open('./counting.json', 'r', encoding = 'utf8') as jfilec:
             jdatac = json.load(jfilec)
         if str(msg.channel.id) in jdatac['CONTINUE'] and str(msg.channel.id) in jdatac['RECORD'] and not msg.author.bot:
-            try:
-                inputnum = int(msg.content)
-                nextnum = jdatac['CONTINUE'][str(msg.channel.id)]['counting'] + 1
-                if inputnum == 0:
-                    if jdatac['CONTINUE'][str(msg.channel.id)]['counting'] > jdatac['RECORD'][str(msg.channel.id)]['counting']:
+            # try:
+            inputnum = int(msg.content)
+            nextnum = jdatac['CONTINUE'][str(msg.channel.id)]['counting'] + 1
+            if inputnum == 0:
+                if jdatac['CONTINUE'][str(msg.channel.id)]['counting'] > jdatac['RECORD'][str(msg.channel.id)]['counting']:
+                    if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
+                        try:
+                            recorduser = msg.guild.get_member(jdatac['RECORD'][str(msg.channel.id)]['recorduser'])
+                        except:
+                            pass
+                    if not jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] == 0:
+                        try:
+                            lastuser = msg.guild.get_member(jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'])
+                        except:
+                            pass
+                    if not jdatac['RECORD'][str(msg.channel.id)]['msgid'] == 0:
+                        try:
+                            msg0 = await msg.channel.fetch_message(jdatac['RECORD'][str(msg.channel.id)]['msgid'])
+                            await msg0.unpin()
+                        except:
+                            pass
+                    if not jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] == 0:
+                        try:
+                            msg1 = await msg.channel.fetch_message(jdatac['CONTINUE'][str(msg.channel.id)]['msgid'])
+                            await msg1.pin()
+                        except:
+                            pass
+                    isexist = cd.find_one({
+                        "_id": str(lastuser.id)
+                    })
+                    if isexist:
+                        bonus = 10 * jdatac['CONTINUE'][str(msg.channel.id)]['counting']
+                        cd.update_one({
+                            "_id": str(lastuser.id)
+                        },{
+                            "$inc":{
+                                "money": bonus
+                            }
+                        })
                         if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
                             try:
-                                recorduser = msg.guild.get_member(jdatac['RECORD'][str(msg.channel.id)]['recorduser'])
+                                await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
                             except:
-                                pass
-                        if not jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] == 0:
-                            try:
-                                lastuser = msg.guild.get_member(jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'])
-                            except:
-                                pass
-                        if not jdatac['RECORD'][str(msg.channel.id)]['msgid'] == 0:
-                            try:
-                                msg0 = await msg.channel.fetch_message(jdatac['RECORD'][str(msg.channel.id)]['msgid'])
-                                await msg0.unpin()
-                            except:
-                                pass
-                        if not jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] == 0:
-                            try:
-                                msg1 = await msg.channel.fetch_message(jdatac['CONTINUE'][str(msg.channel.id)]['msgid'])
-                                await msg1.pin()
-                            except:
+                                await msg.channel.send(f"{lastuser.mention} 突破了 {jdatac['RECORD'][str(msg.channel.id)]['recorduser']} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
+                        else:
+                            await msg.channel.send(f"{lastuser.mention} 突破了記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
+                    else:
+                        await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{inputnum}` 但是沒有賬戶 無法獲得獎勵")
+                    jdatac['RECORD'][str(msg.channel.id)]['recorduser'] = jdatac['CONTINUE'][str(msg.channel.id)]['lastuser']
+                    jdatac['RECORD'][str(msg.channel.id)]['counting'] = jdatac['CONTINUE'][str(msg.channel.id)]['counting']
+                    jdatac['RECORD'][str(msg.channel.id)]['msgid'] = jdatac['CONTINUE'][str(msg.channel.id)]['msgid']
+                await msg.add_reaction(emoji="🔁")
+                jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = 0
+                jdatac['CONTINUE'][str(msg.channel.id)]['counting'] = 0
+                jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = 0
+            elif not msg.author.id == jdatac['CONTINUE'][str(msg.channel.id)]['lastuser']:
+                if inputnum == nextnum:
+                    await msg.add_reaction(emoji="⭕")
+                    jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = msg.author.id
+                    jdatac['CONTINUE'][str(msg.channel.id)]['counting'] += 1
+                    jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = msg.id
+                    with open('./countingbonus.json', 'r', encoding = 'utf8') as jfileb:
+                        jdatab = json.load(jfileb)
+                    if str(inputnum) in jdatab:
+                        for b in jdatab:
+                            if str(inputnum) == b:
+                                bonus = jdatab[str(inputnum)]
+                                break
+                            else:
                                 pass
                         isexist = cd.find_one({
-                            "_id": str(lastuser.id)
+                            "_id": str(msg.author.id)
                         })
                         if isexist:
-                            bonus = 10 * jdatac['CONTINUE'][str(msg.channel.id)]['counting']
                             cd.update_one({
-                                "_id": str(lastuser.id)
+                                "_id": str(msg.author.id)
                             },{
                                 "$inc":{
                                     "money": bonus
                                 }
                             })
-                            if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
-                                try:
-                                    await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
-                                except:
-                                    await msg.channel.send(f"{lastuser.mention} 突破了 {jdatac['RECORD'][str(msg.channel.id)]['recorduser']} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
-                            else:
-                                await msg.channel.send(f"{lastuser.mention} 突破了記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
+                            await msg.channel.send(f"{msg.author.mention} 達到`{inputnum}` 獲得 `{bonus}PT` 作為獎勵")
                         else:
-                            await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{inputnum}` 但是沒有賬戶 無法獲得獎勵")
-                        jdatac['RECORD'][str(msg.channel.id)]['recorduser'] = jdatac['CONTINUE'][str(msg.channel.id)]['lastuser']
-                        jdatac['RECORD'][str(msg.channel.id)]['counting'] = jdatac['CONTINUE'][str(msg.channel.id)]['counting']
-                        jdatac['RECORD'][str(msg.channel.id)]['msgid'] = jdatac['CONTINUE'][str(msg.channel.id)]['msgid']
-                    await msg.add_reaction(emoji="🔁")
-                    jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = 0
-                    jdatac['CONTINUE'][str(msg.channel.id)]['counting'] = 0
-                    jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = 0
-                elif not msg.author.id == jdatac['CONTINUE'][str(msg.channel.id)]['lastuser']:
-                    if inputnum == nextnum:
-                        await msg.add_reaction(emoji="⭕")
-                        jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = msg.author.id
-                        jdatac['CONTINUE'][str(msg.channel.id)]['counting'] += 1
-                        jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = msg.id
-                        with open('./countingbonus.json', 'r', encoding = 'utf8') as jfileb:
-                            jdatab = json.load(jfileb)
-                        if str(inputnum) in jdatab:
-                            for b in jdatab:
-                                if str(inputnum) == b:
-                                    bonus = jdatab[str(inputnum)]
-                                    break
-                                else:
-                                    pass
-                            isexist = cd.find_one({
-                                "_id": str(msg.author.id)
-                            })
-                            if isexist:
-                                cd.update_one({
-                                    "_id": str(msg.author.id)
-                                },{
-                                    "$inc":{
-                                        "money": bonus
-                                    }
-                                })
-                                await msg.channel.send(f"{msg.author.mention} 達到`{inputnum}` 獲得 `{bonus}PT` 作為獎勵")
-                            else:
-                                await msg.channel.send(f"{msg.author.mention} 沒有賬戶 無法獲得獎勵")
-                        else:
-                            pass
+                            await msg.channel.send(f"{msg.author.mention} 沒有賬戶 無法獲得獎勵")
                     else:
-                        if jdatac['CONTINUE'][str(msg.channel.id)]['counting'] > jdatac['RECORD'][str(msg.channel.id)]['counting']:
-                            if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
-                                try:
-                                    recorduser = msg.guild.get_member(jdatac['RECORD'][str(msg.channel.id)]['recorduser'])
-                                except:
-                                    pass
-                            if not jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] == 0:
-                                try:
-                                    lastuser = msg.guild.get_member(jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'])
-                                except:
-                                    pass
-                            if not jdatac['RECORD'][str(msg.channel.id)]['msgid'] == 0:
-                                try:
-                                    msg0 = await msg.channel.fetch_message(jdatac['RECORD'][str(msg.channel.id)]['msgid'])
-                                    await msg0.unpin()
-                                except:
-                                    pass
-                            if not jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] == 0:
-                                try:
-                                    msg1 = await msg.channel.fetch_message(jdatac['CONTINUE'][str(msg.channel.id)]['msgid'])
-                                    await msg1.pin()
-                                except:
-                                    pass
-                            isexist = cd.find_one({
-                                "_id": str(lastuser.id)
-                            })
-                            if isexist:
-                                bonus = 10 * jdatac['CONTINUE'][str(msg.channel.id)]['counting']
-                                cd.update_one({
-                                    "_id": str(lastuser.id)
-                                },{
-                                    "$inc":{
-                                        "money": bonus
-                                    }
-                                })
-                                if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
-                                    try:
-                                        await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
-                                    except:
-                                        await msg.channel.send(f"{lastuser.mention} 突破了 {jdatac['RECORD'][str(msg.channel.id)]['recorduser']} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
-                                else:
-                                    await msg.channel.send(f"{lastuser.mention} 突破了記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
-                            else:
-                                await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{inputnum}` 但是沒有賬戶 無法獲得獎勵")
-                            jdatac['RECORD'][str(msg.channel.id)]['recorduser'] = jdatac['CONTINUE'][str(msg.channel.id)]['lastuser']
-                            jdatac['RECORD'][str(msg.channel.id)]['counting'] = jdatac['CONTINUE'][str(msg.channel.id)]['counting']
-                            jdatac['RECORD'][str(msg.channel.id)]['msgid'] = jdatac['CONTINUE'][str(msg.channel.id)]['msgid']
-                        await msg.add_reaction(emoji="❌")
-                        jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = 0
-                        jdatac['CONTINUE'][str(msg.channel.id)]['counting'] = 0
-                        jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = 0
+                        pass
                 else:
                     if jdatac['CONTINUE'][str(msg.channel.id)]['counting'] > jdatac['RECORD'][str(msg.channel.id)]['counting']:
                         if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
@@ -316,7 +268,7 @@ class Counting(Cog_Extension):
                     jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = 0
                     jdatac['CONTINUE'][str(msg.channel.id)]['counting'] = 0
                     jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = 0
-            except:
+            else:
                 if jdatac['CONTINUE'][str(msg.channel.id)]['counting'] > jdatac['RECORD'][str(msg.channel.id)]['counting']:
                     if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
                         try:
@@ -368,6 +320,58 @@ class Counting(Cog_Extension):
                 jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = 0
                 jdatac['CONTINUE'][str(msg.channel.id)]['counting'] = 0
                 jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = 0
+            # except:
+            #     if jdatac['CONTINUE'][str(msg.channel.id)]['counting'] > jdatac['RECORD'][str(msg.channel.id)]['counting']:
+            #         if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
+            #             try:
+            #                 recorduser = msg.guild.get_member(jdatac['RECORD'][str(msg.channel.id)]['recorduser'])
+            #             except:
+            #                 pass
+            #         if not jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] == 0:
+            #             try:
+            #                 lastuser = msg.guild.get_member(jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'])
+            #             except:
+            #                 pass
+            #         if not jdatac['RECORD'][str(msg.channel.id)]['msgid'] == 0:
+            #             try:
+            #                 msg0 = await msg.channel.fetch_message(jdatac['RECORD'][str(msg.channel.id)]['msgid'])
+            #                 await msg0.unpin()
+            #             except:
+            #                 pass
+            #         if not jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] == 0:
+            #             try:
+            #                 msg1 = await msg.channel.fetch_message(jdatac['CONTINUE'][str(msg.channel.id)]['msgid'])
+            #                 await msg1.pin()
+            #             except:
+            #                 pass
+            #         isexist = cd.find_one({
+            #             "_id": str(lastuser.id)
+            #         })
+            #         if isexist:
+            #             bonus = 10 * jdatac['CONTINUE'][str(msg.channel.id)]['counting']
+            #             cd.update_one({
+            #                 "_id": str(lastuser.id)
+            #             },{
+            #                 "$inc":{
+            #                     "money": bonus
+            #                 }
+            #             })
+            #             if not jdatac['RECORD'][str(msg.channel.id)]['recorduser'] == 0:
+            #                 try:
+            #                     await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
+            #                 except:
+            #                     await msg.channel.send(f"{lastuser.mention} 突破了 {jdatac['RECORD'][str(msg.channel.id)]['recorduser']} 的記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
+            #             else:
+            #                 await msg.channel.send(f"{lastuser.mention} 突破了記錄達到 `{jdatac['CONTINUE'][str(msg.channel.id)]['counting']}` 獲得 `{bonus}PT` 作為獎勵")
+            #         else:
+            #             await msg.channel.send(f"{lastuser.mention} 突破了 {recorduser.mention} 的記錄達到 `{inputnum}` 但是沒有賬戶 無法獲得獎勵")
+            #         jdatac['RECORD'][str(msg.channel.id)]['recorduser'] = jdatac['CONTINUE'][str(msg.channel.id)]['lastuser']
+            #         jdatac['RECORD'][str(msg.channel.id)]['counting'] = jdatac['CONTINUE'][str(msg.channel.id)]['counting']
+            #         jdatac['RECORD'][str(msg.channel.id)]['msgid'] = jdatac['CONTINUE'][str(msg.channel.id)]['msgid']
+            #     await msg.add_reaction(emoji="❌")
+            #     jdatac['CONTINUE'][str(msg.channel.id)]['lastuser'] = 0
+            #     jdatac['CONTINUE'][str(msg.channel.id)]['counting'] = 0
+            #     jdatac['CONTINUE'][str(msg.channel.id)]['msgid'] = 0
             with open('./counting.json', 'w', encoding = 'utf8') as jfilec:
                 json.dump(jdatac, jfilec)
         else:
